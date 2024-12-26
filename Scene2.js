@@ -1,7 +1,6 @@
 class Scene2 extends Phaser.Scene {
 	constructor() {
 		super("playGame")
-		Phaser
 	}
 
 	create() {
@@ -109,7 +108,7 @@ class Scene2 extends Phaser.Scene {
 
 	resetPlayer() {
 		let x = config.width / 2 - 8;
-		let y = config.height - 64;
+		let y = config.height + 64;
 		this.player.enableBody(true, x, y, true, true);
 
 		this.player.alpha = 0.5;
