@@ -13,6 +13,11 @@ class Scene2 extends Phaser.Scene {
 		this.ship2 = this.add.sprite(config.width / 2, config.height / 2, 'ship2');
 		this.ship3 = this.add.sprite(config.width / 2 + 50, config.height / 2, 'ship3');
 
+		this.enemies = this.physics.add.group();
+		this.enemies.add(this.ship1);
+		this.enemies.add(this.ship2);
+		this.enemies.add(this.ship3);
+
 		this.player = this.physics.add.sprite(config.width / 2 - 8, config.height - 64, 'player');
 		this.player.play("thrust");
 		this.player.setCollideWorldBounds(true);
@@ -49,7 +54,23 @@ class Scene2 extends Phaser.Scene {
 
 		this.input.on('gameobjectdown', this.destroyShip, this);
 
-		this.add.text(20, 20, "Playing game", { font: "25px Arial", fill: "yellow" });
+		// this.add.text(20, 20, "Playing game", { font: "25px Arial", fill: "yellow" });
+
+		this.physics.add.collider(this.projectiles, this.powerUps, function (projectile, powerUp) {
+			projectile.destroy();
+		});
+
+		this.physics.add.overlap(this.player, this.powerUps, this.pickPowerUp, null, this);
+		this.physics.add.overlap(this.player, this.enemies, this.hurtPlayer, null, this);
+		this.physics.add.overlap(this.projectiles, this.enemies, this.hitEnemy, null, this);
+
+
+		this.createScoreBlackHeader();
+		this.score = 0;
+		// first two parameters: position
+		// last parameter: font size
+		this.scoreLabel = this.add.bitmapText(10, 5, "pixelFont", "SCORE 000000", 16);
+
 	}
 
 	update() {
@@ -62,7 +83,9 @@ class Scene2 extends Phaser.Scene {
 		this.movePlayerManager();
 
 		if (Phaser.Input.Keyboard.JustDown(this.spacebar)) {
-			this.shootBeam();
+			if (this.player.active) {
+				this.shootBeam();
+			}
 		}
 
 		for (var i = 0; i < this.projectiles.getChildren().length; i++) {
@@ -84,13 +107,35 @@ class Scene2 extends Phaser.Scene {
 		ship.x = randomX;
 	}
 
+	resetPlayer() {
+		let x = config.width / 2 - 8;
+		let y = config.height - 64;
+		this.player.enableBody(true, x, y, true, true);
+
+		this.player.alpha = 0.5;
+
+		var tween = this.tweens.add({
+			targets: this.player,
+			y: config.height - 64,
+			ease: 'Power1',
+			duration: 1500,
+			repeat: 0,
+			onComplete: function () {
+				this.player.alpha = 1;
+			},
+			callbackScope: this
+		});
+	}
+
 	destroyShip(pointer, gameObject) {
 		console.log("destroy")
 		gameObject.setTexture("explosion");
-		gameObject.play("explode_anim")
+		gameObject.play("explode")
 	}
 
 	movePlayerManager() {
+		this.player.setVelocity(0);
+
 		if (this.cursorKeys.left.isDown) {
 			this.player.setVelocityX(-gameSettings.playerSpeed);
 		} else if (this.cursorKeys.right.isDown) {
@@ -105,5 +150,61 @@ class Scene2 extends Phaser.Scene {
 	shootBeam() {
 		var beam = new Beam(this);
 		console.log("shoot")
+	}
+
+	pickPowerUp(player, powerUp) {
+		powerUp.disableBody(true, true)
+	}
+
+	hurtPlayer(player, enemy) {
+		if (this.player.alpha < 1) {
+			return;
+		}
+		let explosion = new Explosion(this, player.x, player.y)
+		this.resetShipPos(enemy);
+		player.x = config.width / 2 - 8;
+		player.y = config.height - 64;
+
+
+		player.disableBody(true, true);
+
+		this.time.addEvent({
+			delay: 1000,
+			callback: this.resetPlayer,
+			callbackScope: this,
+			loop: false
+		})
+	}
+
+	hitEnemy(projectile, enemy) {
+		let explosion = new Explosion(this, enemy.x, enemy.y)
+		projectile.destroy();
+		this.resetShipPos(enemy);
+		this.score += 15;
+
+		var scoreFormated = this.zeroPad(this.score, 6);
+		this.scoreLabel.text = "SCORE " + scoreFormated;
+	}
+
+	createScoreBlackHeader() {
+		var graphics = this.add.graphics();
+		graphics.fillStyle(0x000000, 1);
+		graphics.beginPath();
+		graphics.moveTo(0, 0);
+		graphics.lineTo(config.width, 0);
+		graphics.lineTo(config.width, 20);
+		graphics.lineTo(0, 20);
+		graphics.lineTo(0, 0);
+		//
+		graphics.closePath();
+		graphics.fillPath();
+	}
+
+	zeroPad(number, size) {
+		var stringNumber = String(number);
+		while (stringNumber.length < (size || 2)) {
+			stringNumber = "0" + stringNumber;
+		}
+		return stringNumber;
 	}
 }

@@ -40,6 +40,8 @@ class Scene1 extends Phaser.Scene {
 			frameWidth: 16,
 			frameHeight: 16
 		});
+
+		this.load.bitmapFont("pixelFont", "assets/font/font.png", "assets/font/font.xml");
 	}
 
 	create() {
@@ -68,7 +70,7 @@ class Scene1 extends Phaser.Scene {
 		})
 
 		this.anims.create({
-			key: "explode_anim",
+			key: "explode",
 			frames: this.anims.generateFrameNumbers("explosion"),
 			frameRate: 20,
 			repeat: 0,
